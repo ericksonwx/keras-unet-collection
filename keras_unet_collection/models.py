@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 from keras_unet_collection._model_unet_2d import unet_2d
+from keras_unet_collection._model_unet_2d_lstm import unet_2d_lstm
 from keras_unet_collection._model_unet_3d import unet_3d
 from keras_unet_collection._model_vnet_2d import vnet_2d
 from keras_unet_collection._model_unet_plus_2d import unet_plus_2d
