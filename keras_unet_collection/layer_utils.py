@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from keras_unet_collection.activations import GELU, Snake
 from tensorflow import expand_dims
 from tensorflow.compat.v1 import image
-from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D, UpSampling2D, Conv2DTranspose, GlobalAveragePooling2D
+from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D, UpSampling2D, Conv2DTranspose, GlobalAveragePooling2D, SpatialDropout2D
 from tensorflow.keras.layers import Conv2D, DepthwiseConv2D, Lambda
 from tensorflow.keras.layers import BatchNormalization, Activation, concatenate, multiply, add
 from tensorflow.keras.layers import ReLU, LeakyReLU, PReLU, ELU, Softmax
@@ -29,6 +29,7 @@ def decode_layer(X, channel, pool_size, unpool, kernel_size=3, l1=1e-2, l2=1e-2,
                 False for Conv2DTranspose + batch norm + activation.           
         kernel_size: size of convolution kernels. 
                      If kernel_size='auto', then it equals to the `pool_size`.
+        dropout: Fraction to use for spatial dropout.
         l1: the l1 regularization penalty used in kernel regularization
         l2: the l2 regularization penalty used in kernel regularization
         activation: one of the `tensorflow.keras.layers` interface, e.g., ReLU.
@@ -207,7 +208,7 @@ def attention_gate(X, g, channel, l1=1e-2, l2=1e-2,
     
     return X_att
 
-def CONV_stack(X, channel, kernel_size=3, stack_num=2, dilation_rate=1, l1=1e-2, l2=1e-2, activation='ReLU',batch_norm=False, 
+def CONV_stack(X, channel, kernel_size=3, dropout=None, stack_num=2, dilation_rate=1, l1=1e-2, l2=1e-2, activation='ReLU',batch_norm=False, 
                     kernel_initializer='glorot_uniform',name='conv_stack'):
     '''
     Stacked convolutional layers:
@@ -249,7 +250,11 @@ def CONV_stack(X, channel, kernel_size=3, stack_num=2, dilation_rate=1, l1=1e-2,
                    kernel_regularizer=regularizers.L1L2(l1=l1, l2=l2), 
                    dilation_rate=dilation_rate, kernel_initializer=kernel_initializer,
                    name='{}_{}'.format(name, i))(X)
-        
+
+        if dropout is not None:
+            print('Using dropout')
+            X = SpatialDropout2D(rate=dropout, name='{}_sd')(X)
+      
         # batch normalization
         if batch_norm:
             X = BatchNormalization(axis=3, name='{}_{}_bn'.format(name, i))(X)
