@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_num_aggregate, kernel_size=3, l1=1e-2, l2=1e-2,
+def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_num_aggregate, kernel_size=3, dropout=None, l1=1e-2, l2=1e-2,
                        stack_num_down=2, stack_num_up=1, activation='ReLU', batch_norm=False, pool=True, unpool=True, 
                        backbone=None, weights='imagenet', freeze_backbone=True, freeze_batch_norm=True, name='unet3plus'):
     '''
@@ -93,7 +93,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
         X = input_tensor
 
         # stacked conv2d before downsampling
-        X = CONV_stack(X, filter_num_down[0], kernel_size=kernel_size, stack_num=stack_num_down, l1=l1, l2=l2,
+        X = CONV_stack(X, filter_num_down[0], kernel_size=kernel_size, dropout=dropout, stack_num=stack_num_down, l1=l1, l2=l2,
                        activation=activation, batch_norm=batch_norm, name='{}_down0'.format(name))
         X_encoder.append(X)
 
@@ -180,7 +180,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
                                  batch_norm=batch_norm, name='{}_down_{}_en{}'.format(name, i, lev))
 
             # a conv layer after feature map scale change
-            X = CONV_stack(X, f, kernel_size=kernel_size, stack_num=1, l1=l1, l2=l2,
+            X = CONV_stack(X, f, kernel_size=kernel_size, dropout=dropout, stack_num=1, l1=l1, l2=l2,
                            activation=activation, batch_norm=batch_norm, name='{}_down_from{}_to{}'.format(name, i, lev))
 
             X_fscale.append(X)  
@@ -189,7 +189,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
         # stacked conv layers after concat. BatchNormalization is fixed to True
 
         X = concatenate(X_fscale, axis=-1, name='{}_concat_{}'.format(name, i))
-        X = CONV_stack(X, filter_num_aggregate, kernel_size=kernel_size, stack_num=stack_num_up, l1=l1, l2=l2,
+        X = CONV_stack(X, filter_num_aggregate, kernel_size=kernel_size, dropout=dropout, stack_num=stack_num_up, l1=l1, l2=l2,
                        activation=activation, batch_norm=True, name='{}_fusion_conv_{}'.format(name, i))
         X_decoder.append(X)
 
@@ -205,7 +205,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
     # return decoder outputs
     return X_decoder
 
-def unet_3plus_2d(input_size, filter_num_down, n_labels, kernel_size=3, filter_num_skip='auto', filter_num_aggregate='auto', 
+def unet_3plus_2d(input_size, filter_num_down, n_labels, kernel_size=3, dropout=None, filter_num_skip='auto', filter_num_aggregate='auto', 
                   l1=1e-2, l2=1e-2, stack_num_down=2, stack_num_up=1, activation='ReLU', output_activation='Sigmoid',
                   batch_norm=False, pool=True, unpool=True, deep_supervision=False,
                   backbone=None, weights='imagenet', freeze_backbone=True, freeze_batch_norm=True, name='unet3plus'):
@@ -323,7 +323,7 @@ def unet_3plus_2d(input_size, filter_num_down, n_labels, kernel_size=3, filter_n
     IN = Input(input_size)
 
     X_decoder = unet_3plus_2d_base(IN, filter_num_down, filter_num_skip, filter_num_aggregate, kernel_size=kernel_size,
-                                   stack_num_down=stack_num_down, stack_num_up=stack_num_up, activation=activation, 
+                                   dropout=dropout, stack_num_down=stack_num_down, stack_num_up=stack_num_up, activation=activation, 
                                    batch_norm=batch_norm, pool=pool, unpool=unpool, l1=l1, l2=l2,
                                    backbone=backbone, weights=weights, freeze_backbone=freeze_backbone, 
                                    freeze_batch_norm=freeze_batch_norm, name=name)
