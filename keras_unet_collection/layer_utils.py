@@ -208,8 +208,9 @@ def attention_gate(X, g, channel, l1=1e-2, l2=1e-2,
     
     return X_att
 
-def CONV_stack(X, channel, kernel_size=3, dropout=None, stack_num=2, dilation_rate=1, l1=1e-2, l2=1e-2, activation='ReLU',batch_norm=False, 
-                    kernel_initializer='glorot_uniform',name='conv_stack'):
+def CONV_stack(X, channel, kernel_size=3, dropout=None, spatial_dropout=None, stack_num=2, 
+               dilation_rate=1, l1=1e-2, l2=1e-2, activation='ReLU',batch_norm=False, 
+                kernel_initializer='glorot_uniform',name='conv_stack'):
     '''
     Stacked convolutional layers:
     (Convolutional layer --> batch normalization --> Activation)*stack_num
@@ -251,10 +252,6 @@ def CONV_stack(X, channel, kernel_size=3, dropout=None, stack_num=2, dilation_ra
                    dilation_rate=dilation_rate, kernel_initializer=kernel_initializer,
                    name='{}_{}'.format(name, i))(X)
 
-        if dropout is not None:
-            print('Using dropout')
-            X = SpatialDropout2D(rate=dropout, name='{}_sd')(X)
-      
         # batch normalization
         if batch_norm:
             X = BatchNormalization(axis=3, name='{}_{}_bn'.format(name, i))(X)
@@ -262,7 +259,12 @@ def CONV_stack(X, channel, kernel_size=3, dropout=None, stack_num=2, dilation_ra
         # activation
         activation_func = eval(activation)
         X = activation_func(name='{}_{}_activation'.format(name, i))(X)
-        
+
+    # Dropout
+    if dropout is not None:
+            X = Dropout(rate=dropout, name='{}_d')(X)    
+    if spatial_dropout is not None:
+            X = SpatialDropout2D(rate=spatial_dropout, name='{}_sd')(X)    
     return X
 
 def Res_CONV_stack(X, X_skip, channel, res_num, l1=1e-2, l2=1e-2, activation='ReLU', batch_norm=False, name='res_conv'):
