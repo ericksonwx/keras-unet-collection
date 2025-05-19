@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from keras_unet_collection.activations import GELU, Snake
 from tensorflow import expand_dims
 from tensorflow.compat.v1 import image
-from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D, UpSampling2D, Conv2DTranspose, GlobalAveragePooling2D, SpatialDropout2D
+from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D, UpSampling2D, Conv2DTranspose, GlobalAveragePooling2D, SpatialDropout2D, RandomRotation
 from tensorflow.keras.layers import Conv2D, DepthwiseConv2D, Lambda
 from tensorflow.keras.layers import BatchNormalization, Activation, concatenate, multiply, add
 from tensorflow.keras.layers import ReLU, LeakyReLU, PReLU, ELU, Softmax
@@ -208,7 +208,7 @@ def attention_gate(X, g, channel, l1=1e-2, l2=1e-2,
     
     return X_att
 
-def CONV_stack(X, channel, kernel_size=3, dropout=None, spatial_dropout=None, stack_num=2, 
+def CONV_stack(X, channel, kernel_size=3, dropout=None, spatial_dropout=None, rotation=None, stack_num=2, 
                dilation_rate=1, l1=1e-2, l2=1e-2, activation='ReLU',batch_norm=False, 
                 kernel_initializer='glorot_uniform',name='conv_stack'):
     '''
@@ -259,12 +259,7 @@ def CONV_stack(X, channel, kernel_size=3, dropout=None, spatial_dropout=None, st
         # activation
         activation_func = eval(activation)
         X = activation_func(name='{}_{}_activation'.format(name, i))(X)
-
-    # Dropout
-    if dropout is not None:
-            X = Dropout(rate=dropout, name='{}_d')(X)    
-    if spatial_dropout is not None:
-            X = SpatialDropout2D(rate=spatial_dropout, name='{}_sd')(X)    
+      
     return X
 
 def Res_CONV_stack(X, X_skip, channel, res_num, l1=1e-2, l2=1e-2, activation='ReLU', batch_norm=False, name='res_conv'):
