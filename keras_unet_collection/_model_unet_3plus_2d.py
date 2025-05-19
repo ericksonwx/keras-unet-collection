@@ -6,7 +6,7 @@ from keras_unet_collection.activations import GELU, Snake
 from keras_unet_collection._backbone_zoo import backbone_zoo, bach_norm_checker
 from keras_unet_collection._model_unet_2d import UNET_left, UNET_right
 
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Input, Dropout, SpatialDropout2D, RandomRotation
 from tensorflow.keras.models import Model
 
 import warnings
@@ -92,8 +92,16 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
 
         X = input_tensor
 
+       # Dropout/rotation
+       if dropout is not None:
+           X = Dropout(rate=dropout, name='{}_d')(X)    
+       if spatial_dropout is not None:
+           X = SpatialDropout2D(rate=spatial_dropout, name='{}_sd')(X)    
+       if rotation is not None:
+           X = RandomRotation(factor=rotation,name='{}_rot'.format)name))(X)
+
         # stacked conv2d before downsampling
-        X = CONV_stack(X, filter_num_down[0], kernel_size=kernel_size, dropout=dropout, spatial_dropout=spatial_dropout, rotation=rotation, stack_num=stack_num_down, 
+        X = CONV_stack(X, filter_num_down[0], kernel_size=kernel_size, stack_num=stack_num_down, 
                        l1=l1, l2=l2, activation=activation, batch_norm=batch_norm, name='{}_down0'.format(name))
         X_encoder.append(X)
 
@@ -180,7 +188,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
                                  batch_norm=batch_norm, name='{}_down_{}_en{}'.format(name, i, lev))
 
             # a conv layer after feature map scale change
-            X = CONV_stack(X, f, kernel_size=kernel_size, dropout=dropout, spatial_dropout=spatial_dropout, stack_num=1, l1=l1, l2=l2,
+            X = CONV_stack(X, f, kernel_size=kernel_size, stack_num=1, l1=l1, l2=l2,
                            activation=activation, batch_norm=batch_norm, name='{}_down_from{}_to{}'.format(name, i, lev))
 
             X_fscale.append(X)  
@@ -189,7 +197,7 @@ def unet_3plus_2d_base(input_tensor, filter_num_down, filter_num_skip, filter_nu
         # stacked conv layers after concat. BatchNormalization is fixed to True
 
         X = concatenate(X_fscale, axis=-1, name='{}_concat_{}'.format(name, i))
-        X = CONV_stack(X, filter_num_aggregate, kernel_size=kernel_size, dropout=dropout, spatial_dropout=spatial_dropout, stack_num=stack_num_up, l1=l1, l2=l2,
+        X = CONV_stack(X, filter_num_aggregate, kernel_size=kernel_size, stack_num=stack_num_up, l1=l1, l2=l2,
                        activation=activation, batch_norm=True, name='{}_fusion_conv_{}'.format(name, i))
         X_decoder.append(X)
 
